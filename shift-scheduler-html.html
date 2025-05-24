@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Scheduling Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .lucide-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app" class="max-w-7xl mx-auto p-6 space-y-6">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <svg class="lucide-icon text-blue-600" viewBox="0 0 24 24">
+                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                    <line x1="16" x2="16" y1="2" y2="6"/>
+                    <line x1="8" x2="8" y1="2" y2="6"/>
+                    <line x1="3" x2="21" y1="10" y2="10"/>
+                </svg>
+                Shift Scheduling Assistant
+            </h1>
+
+            <!-- Step 1: Set Requirements -->
+            <div class="bg-blue-50 rounded-lg p-4 mb-6">
+                <h2 class="text-lg font-semibold mb-4">Step 1: Set Daily Requirements</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Select Date</label>
+                        <select id="dateSelect" class="w-full p-2 border rounded-md">
+                            <option value="">Choose Date</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Required People</label>
+                        <input
+                            type="number"
+                            id="requiredPeople"
+                            class="w-full p-2 border rounded-md"
+                            min="0"
+                            max="20"
+                            value="0"
+                        />
+                    </div>
+
+                    <div class="flex items-end">
+                        <button
+                            id="setRequirementBtn"
+                            class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed w-full"
+                            disabled
+                        >
+                            Set Requirement
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Smart Assignment -->
+            <div class="bg-green-50 rounded-lg p-4 mb-6">
+                <h2 class="text-lg font-semibold mb-4">
+                    Step 2: Smart Employee Assignment 
+                    <span id="assignmentStatus" class="text-sm font-normal ml-2"></span>
+                </h2>
+
+                <!-- Smart Suggestions -->
+                <div id="suggestionsPanel" class="mb-4 p-4 bg-blue-100 rounded-lg border-l-4 border-blue-500 hidden">
+                    <h3 class="font-semibold text-blue-800 mb-2">🤖 Smart Suggestions (Equal Distribution)</h3>
+                    <p class="text-sm text-blue-700 mb-3">
+                        Based on current shift counts, here are the recommended employees for fair distribution:
+                    </p>
+                    <div id="suggestedEmployeesList" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3"></div>
+                    <div class="flex gap-2">
+                        <button
+                            id="autoAssignBtn"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+                        >
+                            ✨ Auto-Assign All Suggested
+                        </button>
+                        <button
+                            id="hideSuggestionsBtn"
+                            class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 text-sm"
+                        >
+                            Hide Suggestions
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Manual Assignment -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Manual Selection (Optional)</label>
+                        <select id="employeeSelect" class="w-full p-2 border rounded-md" disabled>
+                            <option value="">Choose Employee Manually</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-end">
+                        <button
+                            id="assignManuallyBtn"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed w-full"
+                            disabled
+                        >
+                            Assign Manually
+                        </button>
+                    </div>
+                </div>
+
+                <div id="currentStatus" class="mt-4 p-3 bg-white rounded border hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium" id="statusDateText">Current Status:</span>
+                        <span id="statusBadge" class="px-2 py-1 rounded text-sm"></span>
+                    </div>
+                    <div id="statusMessages"></div>
+                    <button
+                        id="getSuggestionsBtn"
+                        class="mt-2 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 text-sm hidden"
+                    >
+                        🎯 Get Smart Suggestions
+                    </button>
+                </div>
+            </div>
+
+            <!-- Schedule Overview and Employee Summary -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Dates and Assignments -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="lucide-icon text-green-600" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12,6 12,12 16,14"/>
+                        </svg>
+                        Schedule Overview
+                    </h2>
+                    <div id="scheduleOverview" class="space-y-3 max-h-96 overflow-y-auto"></div>
+                </div>
+
+                <!-- Employee Summary -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="lucide-icon text-purple-600" viewBox="0 0 24 24">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="m22 21-2-2"/>
+                            <path d="m16 16 2 2"/>
+                            <circle cx="18" cy="14" r="3"/>
+                        </svg>
+                        Employee Summary
+                    </h2>
+                    <div id="employeeSummary" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- Summary Statistics -->
+            <div class="mt-6 bg-gray-50 rounded-lg p-4">
+                <h3 class="font-semibold mb-3">Summary Statistics</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-white p-3 rounded">
+                        <div id="fullyStaffedCount" class="text-2xl font-bold text-blue-600">0</div>
+                        <div class="text-sm text-gray-600">Fully Staffed</div>
+                    </div>
+                    <div class="bg-white p-3 rounded">
+                        <div id="understaffedCount" class="text-2xl font-bold text-red-600">0</div>
+                        <div class="text-sm text-gray-600">Understaffed</div>
+                    </div>
+                    <div class="bg-white p-3 rounded">
+                        <div id="avgShifts" class="text-2xl font-bold text-green-600">0</div>
+                        <div class="text-sm text-gray-600">Avg Shifts/Person</div>
+                    </div>
+                    <div class="bg-white p-3 rounded">
+                        <div id="totalAssigned" class="text-2xl font-bold text-purple-600">0</div>
+                        <div class="text-sm text-gray-600">Total Assigned</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let scheduleData = {
+            dates: [
+                { date: '02-06-2025', required: 0, assigned: [] },
+                { date: '03-06-2025', required: 0, assigned: [] },
+                { date: '04-06-2025', required: 0, assigned: [] },
+                { date: '05-06-2025', required: 0, assigned: [] },
+                { date: '06-06-2025', required: 0, assigned: [] },
+                { date: '09-06-2025', required: 0, assigned: [] },
+                { date: '10-06-2025', required: 0, assigned: [] },
+                { date: '11-06-2025', required: 0, assigned: [] },
+                { date: '12-06-2025', required: 0, assigned: [] },
+                { date: '13-06-2025', required: 0, assigned: [] },
+                { date: '16-06-2025', required: 0, assigned: [] },
+                { date: '17-06-2025', required: 0, assigned: [] },
+                { date: '18-06-2025', required: 0, assigned: [] },
+                { date: '19-06-2025', required: 0, assigned: [] },
+                { date: '20-06-2025', required: 0, assigned: [] },
+                { date: '23-06-2025', required: 0, assigned: [] },
+                { date: '24-06-2025', required: 0, assigned: [] }
+            ],
+            employees: [
+                { name: 'Abhiram R', group: 'A', totalShifts: 0, weekShifts: 0 },
+                { name: 'Devaganga K', group: 'A', totalShifts: 0, weekShifts: 0 },
+                { name: 'Kavya M', group: 'A', totalShifts: 0, weekShifts: 0 },
+                { name: 'Adarsh J', group: 'A', totalShifts: 0, weekShifts: 0 },
+                { name: 'Divya S', group: 'A', totalShifts: 0, weekShifts: 0 },
+                { name: 'Aleena J', group: 'A', totalShifts: 0, weekShifts: 0 },
+                { name: 'Emily E', group: 'B', totalShifts: 0, weekShifts: 0 },
+                { name: 'Sanjay G', group: 'B', totalShifts: 0, weekShifts: 0 },
+                { name: 'Jefferson A', group: 'B', totalShifts: 0, weekShifts: 0 },
+                { name: 'Jerome B', group: 'B', totalShifts: 0, weekShifts: 0 },
+                { name: 'Aswathi P', group: 'B', totalShifts: 0, weekShifts: 0 },
+                { name: 'Joseph J', group: 'B', totalShifts: 0, weekShifts: 0 },
+                { name: 'Tilmeezur R', group: 'C', totalShifts: 0, weekShifts: 0 },
+                { name: 'Justyna S', group: 'C', totalShifts: 0, weekShifts: 0 },
+                { name: 'Vishnu B', group: 'C', totalShifts: 0, weekShifts: 0 },
+                { name: 'Bony R', group: 'C', totalShifts: 0, weekShifts: 0 },
+                { name: 'Kattackakathu N', group: 'C', totalShifts: 0, weekShifts: 0 }
+            ]
+        };
+
+        let selectedDate = '';
+        let suggestedEmployees = [];
+
+        // DOM Elements
+        const dateSelect = document.getElementById('dateSelect');
+        const requiredPeopleInput = document.getElementById('requiredPeople');
+        const setRequirementBtn = document.getElementById('setRequirementBtn');
+        const employeeSelect = document.getElementById('employeeSelect');
+        const assignManuallyBtn = document.getElementById('assignManuallyBtn');
+        const assignmentStatus = document.getElementById('assignmentStatus');
+        const suggestionsPanel = document.getElementById('suggestionsPanel');
+        const suggestedEmployeesList = document.getElementById('suggestedEmployeesList');
+        const autoAssignBtn = document.getElementById('autoAssignBtn');
+        const hideSuggestionsBtn = document.getElementById('hideSuggestionsBtn');
+        const currentStatus = document.getElementById('currentStatus');
+        const getSuggestionsBtn = document.getElementById('getSuggestionsBtn');
+
+        // Utility Functions
+        function getDateStatus(date) {
+            const assigned = date.assigned.length;
+            const required = date.required;
+            
+            if (required === 0) return 'inactive';
+            if (assigned === required) return 'complete';
+            if (assigned < required) return 'understaffed';
+            return 'overstaffed';
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'complete': return 'bg-green-100 border-green-300 text-green-800';
+                case 'understaffed': return 'bg-red-100 border-red-300 text-red-800';
+                case 'overstaffed': return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+                default: return 'bg-gray-100 border-gray-300 text-gray-600';
+            }
+        }
+
+        function getSuggestedEmployees(dateStr, requiredCount) {
+            const targetDate = scheduleData.dates.find(d => d.date === dateStr);
+            if (!targetDate || requiredCount === 0) return [];
+
+            const availableEmployees = scheduleData.employees.filter(
+                emp => !targetDate.assigned.includes(emp.name)
+            );
+
+            const sortedEmployees = availableEmployees.sort((a, b) => {
+                if (a.totalShifts !== b.totalShifts) {
+                    return a.totalShifts - b.totalShifts;
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            return sortedEmployees.slice(0, requiredCount);
+        }
+
+        // Initialize Application
+        function init() {
+            populateDateSelect();
+            updateUI();
+            bindEvents();
+        }
+
+        function populateDateSelect() {
+            dateSelect.innerHTML = '<option value="">Choose Date</option>';
+            scheduleData.dates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date.date;
+                option.textContent = `${date.date} (Need: ${date.required}, Assigned: ${date.assigned.length})`;
+                dateSelect.appendChild(option);
+            });
+        }
+
+        function bindEvents() {
+            dateSelect.addEventListener('change', (e) => {
+                selectedDate = e.target.value;
+                const date = scheduleData.dates.find(d => d.date === selectedDate);
+                requiredPeopleInput.value = date ? date.required : 0;
+                setRequirementBtn.disabled = !selectedDate;
+                updateEmployeeSelect();
+                updateCurrentStatus();
+                updateAssignmentStatus();
+            });
+
+            setRequirementBtn.addEventListener('click', updateRequiredPeople);
+            assignManuallyBtn.addEventListener('click', assignEmployee);
+            autoAssignBtn.addEventListener('click', assignSuggestedEmployees);
+            hideSuggestionsBtn.addEventListener('click', () => {
+                suggestionsPanel.classList.add('hidden');
+            });
+            getSuggestionsBtn.addEventListener('click', showSuggestions);
+
+            employeeSelect.addEventListener('change', (e) => {
+                assignManuallyBtn.disabled = !selectedDate || !e.target.value;
+            });
+
+            requiredPeopleInput.addEventListener('input', updateSuggestions);
+        }
+
+        function updateRequiredPeople() {
+            if (!selectedDate) return;
+
+            const requiredPeople = parseInt(requiredPeopleInput.value) || 0;
+            const dateIndex = scheduleData.dates.findIndex(d => d.date === selectedDate);
+            if (dateIndex !== -1) {
+                scheduleData.dates[dateIndex].required = requiredPeople;
+            }
+
+            updateUI();
+            updateSuggestions();
+        }
+
+        function assignEmployee() {
+            if (!selectedDate || !employeeSelect.value) return;
+
+            const dateIndex = scheduleData.dates.findIndex(d => d.date === selectedDate);
+            if (dateIndex === -1) return;
+
+            if (scheduleData.dates[dateIndex].assigned.includes(employeeSelect.value)) {
+                return;
+            }
+
+            scheduleData.dates[dateIndex].assigned.push(employeeSelect.value);
+
+            const empIndex = scheduleData.employees.findIndex(e => e.name === employeeSelect.value);
+            if (empIndex !== -1) {
+                scheduleData.employees[empIndex].totalShifts += 1;
+                scheduleData.employees[empIndex].weekShifts += 1;
+            }
+
+            employeeSelect.value = '';
+            assignManuallyBtn.disabled = true;
+            updateUI();
+        }
+
+        function assignSuggestedEmployees() {
+            if (!selectedDate || suggestedEmployees.length === 0) return;
+
+            const dateIndex = scheduleData.dates.findIndex(d => d.date === selectedDate);
+            if (dateIndex === -1) return;
+
+            const currentAssigned = scheduleData.dates[dateIndex].assigned;
+            const newAssignments = suggestedEmployees
+                .filter(emp => !currentAssigned.includes(emp.name))
+                .map(emp => emp.name);
+
+            scheduleData.dates[dateIndex].assigned = [...currentAssigned, ...newAssignments];
+
+            newAssignments.forEach(empName => {
+                const empIndex = scheduleData.employees.findIndex(e => e.name === empName);
+                if (empIndex !== -1) {
+                    scheduleData.employees[empIndex].totalShifts += 1;
+                    scheduleData.employees[empIndex].weekShifts += 1;
+                }
+            });
+
+            suggestedEmployees = [];
+            suggestionsPanel.classList.add('hidden');
+            updateUI();
+        }
+
+        function removeEmployee(date, employeeName) {
+            const dateIndex = scheduleData.dates.findIndex(d => d.date === date);
+            if (dateIndex === -1) return;
+
+            scheduleData.dates[dateIndex].assigned = scheduleData.dates[dateIndex].assigned.filter(
+                emp => emp !== employeeName
+            );
+
+            const empIndex = scheduleData.employees.findIndex(e => e.name === employeeName);
+            if (empIndex !== -1) {
+                scheduleData.employees[empIndex].totalShifts = Math.max(0, scheduleData.employees[empIndex].totalShifts - 1);
+                scheduleData.employees[empIndex].weekShifts = Math.max(0, scheduleData.employees[empIndex].weekShifts - 1);
+            }
+
+            updateUI();
+        }
+
+        function updateEmployeeSelect() {
+            employeeSelect.disabled = !selectedDate;
+            employeeSelect.innerHTML = '<option value="">Choose Employee Manually</option>';
+            
+            if (!selectedDate) return;
+
+            const targetDate = scheduleData.dates.find(d => d.date === selectedDate);
+            const availableEmployees = scheduleData.employees
+                .filter(emp => !targetDate?.assigned.includes(emp.name))
+                .sort((a, b) => a.totalShifts - b.totalShifts);
+
+            availableEmployees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.name;
+                option.textContent = `${emp.name} (Group ${emp.group}) - ${emp.totalShifts} shifts`;
+                employeeSelect.appendChild(option);
+            });
+        }
+
+        function updateCurrentStatus() {
+            if (!selectedDate) {
+                currentStatus.classList.add('hidden');
+                return;
+            }
+
+            currentStatus.classList.remove('hidden');
+            const targetDate = scheduleData.dates.find(d => d.date === selectedDate);
+            const assigned = targetDate?.assigned.length || 0;
+            const required = targetDate?.required || 0;
+
+            document.getElementById('statusDateText').textContent = `Current Status for ${selectedDate}:`;
+            
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.textContent = `${assigned}/${required} people`;
+            statusBadge.className = `px-2 py-1 rounded text-sm ${assigned === required && required > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`;
+
+            const statusMessages = document.getElementById('statusMessages');
+            statusMessages.innerHTML = '';
+
+            if (required === 0) {
+                statusMessages.innerHTML = '<div class="text-amber-600 text-sm mb-2">⚠️ Set the required number of people first</div>';
+            } else if (assigned === required) {
+                statusMessages.innerHTML = '<div class="text-green-600 text-sm mb-2">✅ This day is fully staffed!</div>';
+            }
+
+            const shouldShowSuggestionsBtn = !suggestionsPanel.classList.contains('hidden') === false && 
+                                          selectedDate && required > 0 && assigned < required;
+            
+            if (shouldShowSuggestionsBtn) {
+                getSuggestionsBtn.classList.remove('hidden');
+            } else {
+                getSuggestionsBtn.classList.add('hidden');
+            }
+        }
+
+        function updateAssignmentStatus() {
+            if (!selectedDate) {
+                assignmentStatus.textContent = '';
+                return;
+            }
+
+            const targetDate = scheduleData.dates.find(d => d.date === selectedDate);
+            const assigned = targetDate?.assigned.length || 0;
+            const required = targetDate?.required || 0;
+            
+            assignmentStatus.textContent = `(${assigned}/${required} assigned for ${selectedDate})`;
+        }
+
+        function updateSuggestions() {
+            if (!selectedDate) return;
+
+            const requiredPeople = parseInt(requiredPeopleInput.value) || 0;
+            const targetDate = scheduleData.dates.find(d => d.date === selectedDate);
+            const remainingNeeded = requiredPeople - (targetDate?.assigned.length || 0);
+
+            if (remainingNeeded > 0) {
+                suggestedEmployees = getSuggestedEmployees(selectedDate, remainingNeeded);
+                if (suggestedEmployees.length > 0 && !suggestionsPanel.classList.contains('hidden')) {
+                    displaySuggestions();
+                }
+            }
+        }
+
+        function showSuggestions() {
+            if (!selectedDate) return;
+
+            const requiredPeople = parseInt(requiredPeopleInput.value) || 0;
+            const targetDate = scheduleData.dates.find(d => d.date === selectedDate);
+            const remainingNeeded = requiredPeople - (targetDate?.assigned.length || 0);
+
+            if (remainingNeeded > 0) {
+                suggestedEmployees = getSuggestedEmployees(selectedDate, remainingNeeded);
+                suggestionsPanel.classList.remove('hidden');
+                displaySuggestions();
+                getSuggestionsBtn.classList.add('hidden');
+            }
+        }
+
+        function displaySuggestions() {
+            suggestedEmployeesList.innerHTML = '';
+            suggestedEmployees.forEach((emp, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-2 rounded border text-sm';
+                div.innerHTML = `
+                    <span class="font-medium">${index + 1}. ${emp.name}</span>
+                    <span class="text-gray-600 ml-2">(Group ${emp.group}, ${emp.totalShifts} shifts)</span>
+                `;
+                suggestedEmployeesList.appendChild(div);
+            });
+        }
+
+        function updateScheduleOverview() {
+            const scheduleOverview = document.getElementById('scheduleOverview');
+            scheduleOverview.innerHTML = '';
+
+            scheduleData.dates.forEach(date => {
+                const status = getDateStatus(date);
+                const div = document.createElement('div');
+                div.className = `border rounded-lg p-3 ${getStatusColor(status)}`;
+                
+                const statusIcon = status === 'complete' && date.required > 0 ? 
+                    '<svg class="w-4 h-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>' :
+                    status === 'understaffed' && date.required > 0 ?
+                    '<svg class="w-4 h-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>' :
+                    date.required === 0 ? '<span class="text-xs bg-gray-200 px-2 py-1 rounded">No requirement set</span>' : '';
+
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">${date.date}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm">Need: ${date.required} | Assigned: ${date.assigned.length}</span>
+                            ${statusIcon}
+                        </div>
+                    </div>
+                    ${date.assigned.length > 0 ? `
+                        <div class="space-y-1">
+                            ${date.assigned.map(emp => {
+                                const employee = scheduleData.employees.find(e => e.name === emp);
+                                return `
+                                    <div class="flex justify-between items-center text-sm bg-white bg-opacity-50 rounded px-2 py-1">
+                                        <span>${emp} (Group ${employee?.group})</span>
+                                        <button onclick="removeEmployee('${date.date}', '${emp}')" class="text-red-600 hover:text-red-800 text-xs">
+                                            Remove
+                                        </button>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+                `;
+                scheduleOverview.appendChild(div);
+            });
+        }
+
+        function updateEmployeeSummary() {
+            const employeeSummary = document.getElementById('employeeSummary');
+            employeeSummary.innerHTML = '';
+
+            ['A', 'B', 'C'].forEach(group => {
+                const groupEmployees = scheduleData.employees.filter(emp => emp.group === group);
+                
+                const div = document.createElement('div');
+                div.className = 'border rounded-lg p-4';
+                div.innerHTML = `
+                    <h3 class="font-semibold mb-3 text-gray-700">Group ${group}</h3>
+                    <div class="grid grid-cols-1 gap-2">
+                        ${groupEmployees.map(emp => `
+                            <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                <span class="text-sm font-medium">${emp.name}</span>
+                                <div class="text-xs text-gray-600">
+                                    <span class="bg-blue-100 px-2 py-1 rounded mr-2">Total: ${emp.totalShifts}</span>
+                                    <span class="bg-green-100 px-2 py-1 rounded">Week: ${emp.weekShifts}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                employeeSummary.appendChild(div);
+            });
+        }
+
+        function updateSummaryStats() {
+            const fullyStaffed = scheduleData.dates.filter(d => getDateStatus(d) === 'complete').length;
+            const understaffed = scheduleData.dates.filter(d => getDateStatus(d) === 'understaffed').length;
+            const totalShifts = scheduleData.employees.reduce((sum, emp) => sum + emp.totalShifts, 0);
+            const avgShifts = Math.round((totalShifts / scheduleData.employees.length) * 10) / 10;
+            const totalAssigned = scheduleData.dates.reduce((sum, d) => sum + d.assigned.length, 0);
+
+            document.getElementById('fullyStaffedCount').textContent = fullyStaffed;
+            document.getElementById('understaffedCount').textContent = understaffed;
+            document.getElementById('avgShifts').textContent = avgShifts;
+            document.getElementById('totalAssigned').textContent = totalAssigned;
+        }
+
+        function updateUI() {
+            populateDateSelect();
+            updateEmployeeSelect();
+            updateScheduleOverview();
+            updateEmployeeSummary();
+            updateSummaryStats();
+            updateCurrentStatus();
+            updateAssignmentStatus();
+        }
+
+        // Make removeEmployee function global for onclick handlers
+        window.removeEmployee = removeEmployee;
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
